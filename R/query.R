@@ -410,13 +410,13 @@ druid.query.select <- function(url = druid.url(), dataSource, intervals, dimensi
   if(verbose){
     cat(query.js)
   }
-  result.raw <- RDruid:::query(jsonstr = query.js,url = url, verbose)
+  result.1 <- RDruid:::query(jsonstr = query.js,url = url, verbose)
   
   if (rawData){
-    return(result.raw)
+    return(result.1)
   }
   else{
-    result <- plyr::ldply(plyr::llply(result.raw[[1]][[2]][[2]], function(x){
+    result <- plyr::ldply(plyr::llply(result.1[[1]][[2]][[2]], function(x){
       as.data.frame(t(x[[3]]))
     }))
   }
