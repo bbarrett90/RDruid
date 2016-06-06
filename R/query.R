@@ -378,3 +378,50 @@ druid.query.topN <- function(url = druid.url(), dataSource, intervals, aggregati
     else ret
   }
 }
+
+
+#'Query raw Druid rows from a datasource
+#'
+#'For a given data source, get the raw Druid rows for a particular period
+#'
+#'@param url URL to connect to druid, defaults to druid.url()
+#'@param dataSource name of the data source to query
+#'@param descending orders the data descending by date. Default is false.
+#'@param dimensions list of dimensions to include in query. An empty list returns all dimensions
+#'@param metrics list of metrics to include in query. An empty list returns all metrics.
+#'@param intervals the time period to retrieve data for as an interval or list of interval objects
+#'@param threshold the maximum number of results the query can return
+#'@return Returns a dataframe with the raw Druid rows
+#'@export
+druid.query.select <- function(url = druid.url(), dataSource, intervals, dimensions = list(), 
+                               metrics = list(), descending = F, threshold, rawData = F,
+                               verbose = F, ...){
+
+  query.js <- RDruid:::json(list(queryType = "select", 
+                                 dataSource = dataSource, 
+                                 descending = descending,
+                                 dimensions = dimensions,
+                                 metrics = metrics,
+                                 granularity = "all",
+                                 intervals = as.list(RDruid::toISO(intervals)),
+                                 pagingSpec = setNames(list(setNames(list(), character(0)),
+                                                             threshold), c("pagingIdentifiers", "threshold"))))
+  
+  if(verbose){
+    cat(query.js)
+  }
+  result.raw <- RDruid:::query(jsonstr = query.js,url = url, verbose)
+  
+  if (rawData){
+    return(result.raw)
+  }
+  else{
+    result <- plyr::ldply(plyr::llply(result.raw[[1]][[2]][[2]], function(x){
+      as.data.frame(t(x[[3]]))
+    }))
+  }
+  
+  
+  return (result)
+}
+
