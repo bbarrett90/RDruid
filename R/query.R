@@ -85,6 +85,37 @@ druid.groupBytodf <- function(result) {
   return(df)
 }
 
+#' Convert Druid select query result to a data frame
+#'
+#' Retrieves the JSON result from Druid, then formats it into a dataframe with
+#' a timestamp column
+#'
+#' @param result The result from query
+#' @seealso \code{\link{query}}
+#'
+druid.selecttodf <- function(result) {
+  
+  # extract columns
+  cols <- c()
+  plyr::l_ply(result[[1]][[2]][[2]], function(x) { cols <<- union(cols, names(x$event)) })
+  
+  # initialize data frame with the right dimensions
+  df <- data.frame(matrix(ncol=length(cols), nrow=length(result[[1]][[2]][[2]])), stringsAsFactors=F)
+  names(df) <- cols
+  
+  # fill in columns
+  for(c in cols) {
+    df[, c] <- plyr::laply(result[[1]][[2]][[2]], function(x){ v <- x$event[c][[1]]; if(is.null(v)) NA else v})
+  }
+  
+  
+  # convert timestamp to POSIXct
+  if(!is.null(df$timestamp)) {
+    df$timestamp <- fromISO(df$timestamp)
+  }
+  return(df)
+}
+
 #' Query Druid data sources
 #'
 #' @param url URL to connect to druid, defaults to druid.url()
@@ -416,9 +447,8 @@ druid.query.select <- function(url = druid.url(), dataSource, intervals, dimensi
     return(result.1)
   }
   else{
-    result <- plyr::ldply(plyr::llply(result.1[[1]][[2]][[2]], function(x){
-      as.data.frame(t(x[[3]]))
-    }))
+    result <- druid.selecttodf(result.1)
+    
   }
   
   
